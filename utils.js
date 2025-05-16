@@ -61,7 +61,7 @@ async function saveStudents(students) {
  */
 function formatDate(dateString) {
     try {
-        // Vérifier si la date est au format ISO (YYYY-MM-DD)
+        // Vérifier si la date est au format ISO
         const date = dayjs(dateString);
         if (date.isValid()) {
             return date.format('DD/MM/YYYY');
@@ -85,8 +85,126 @@ function formatDate(dateString) {
     }
 }
 
+/**
+ * Ajoute un nouvel étudiant
+ * @param {string} name - Nom de l'étudiant
+ * @param {string} birth - Date de naissance de l'étudiant
+ * @returns {Promise<Object>} Objet résultat avec status et message
+ */
+async function addStudent(name, birth) {
+    try {
+        if (!name || !birth) {
+            return { status: 'error', message: 'Tous les champs sont obligatoires' };
+        }
+
+        const students = await getStudents();
+        
+        // Vérifier si l'étudiant existe déjà
+        if (students.some(student => student.name === name)) {
+            return { status: 'error', message: 'Un étudiant avec ce nom existe déjà' };
+        }
+        
+        // Ajouter le nouvel étudiant
+        students.push({ name, birth });
+        await saveStudents(students);
+        
+        return { 
+            status: 'success', 
+            message: 'Étudiant ajouté avec succès',
+            students: students.map(student => ({
+                ...student,
+                formattedBirth: formatDate(student.birth)
+            }))
+        };
+    } catch (error) {
+        console.error('Erreur lors de l\'ajout d\'un étudiant:', error);
+        return { status: 'error', message: 'Erreur lors de l\'ajout de l\'étudiant' };
+    }
+}
+
+/**
+ * Met à jour un étudiant existant
+ * @param {string} originalName - Nom original de l'étudiant
+ * @param {string} name - Nouveau nom de l'étudiant
+ * @param {string} birth - Nouvelle date de naissance de l'étudiant
+ * @returns {Promise<Object>} Objet résultat avec status et message
+ */
+async function updateStudent(originalName, name, birth) {
+    try {
+        if (!name || !birth) {
+            return { status: 'error', message: 'Tous les champs sont obligatoires' };
+        }
+        
+        const students = await getStudents();
+        const studentIndex = students.findIndex(s => s.name === originalName);
+        
+        if (studentIndex === -1) {
+            return { status: 'error', message: 'Étudiant non trouvé' };
+        }
+        
+        // Vérifier si le nouveau nom existe déjà ormis l'édutiant modifié
+        if (name !== originalName && students.some(s => s.name === name)) {
+            return { 
+                status: 'error', 
+                message: 'Un étudiant avec ce nom existe déjà',
+                student: { name: originalName, birth }
+            };
+        }
+        
+        // Mettre à jour l'étudiant
+        students[studentIndex] = { name, birth };
+        await saveStudents(students);
+        
+        return { 
+            status: 'success', 
+            message: 'Étudiant mis à jour avec succès',
+            students: students.map(student => ({
+                ...student,
+                formattedBirth: formatDate(student.birth)
+            }))
+        };
+    } catch (error) {
+        console.error('Erreur lors de la mise à jour de l\'étudiant:', error);
+        return { status: 'error', message: 'Erreur lors de la mise à jour de l\'étudiant' };
+    }
+}
+
+/**
+ * Supprime un étudiant
+ * @param {string} name - Nom de l'étudiant à supprimer
+ * @returns {Promise<Object>} Objet résultat avec status et message
+ */
+async function deleteStudent(name) {
+    try {
+        let students = await getStudents();
+        
+        // Vérifier si l'étudiant existe
+        if (!students.some(s => s.name === name)) {
+            return { status: 'error', message: 'Étudiant non trouvé' };
+        }
+        
+        students = students.filter(student => student.name !== name);
+        await saveStudents(students);
+        
+        return { 
+            status: 'success', 
+            message: 'Étudiant supprimé avec succès',
+            students: students.map(student => ({
+                ...student,
+                formattedBirth: formatDate(student.birth)
+            }))
+        };
+    } catch (error) {
+        console.error('Erreur lors de la suppression de l\'étudiant:', error);
+        return { status: 'error', message: 'Erreur lors de la suppression de l\'étudiant' };
+    }
+}
+
 module.exports = {
     getStudents,
     saveStudents,
     formatDate,
+    addStudent,
+    updateStudent,
+    deleteStudent
 };

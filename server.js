@@ -2,7 +2,13 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const bodyParser = require('body-parser');
-const { getStudents, saveStudents, formatDate } = require('./utils');
+const { 
+  getStudents, 
+  formatDate, 
+  addStudent, 
+  updateStudent, 
+  deleteStudent 
+} = require('./utils');
 
 const app = express();
 const PORT = process.env.APP_PORT || 3000;
@@ -21,6 +27,7 @@ app.get('/', (req, res) => {
   res.render('home', { currentPage: 'home' });
 });
 
+// Route pour afficher la liste des étudiants
 app.get('/users', async (req, res) => {
   try {
     const students = await getStudents();
@@ -44,44 +51,25 @@ app.get('/users', async (req, res) => {
   }
 });
 
+// Route pour afficher le formulaire d'ajout d'un étudiant
 app.post('/add-student', async (req, res) => {
   try {
     const { name, birth } = req.body;
+    const result = await addStudent(name, birth);
     
-    if (!name || !birth) {
+    if (result.status === 'error') {
       return res.render('home', { 
         currentPage: 'home', 
-        message: 'Tous les champs sont obligatoires', 
+        message: result.message, 
         messageType: 'error' 
       });
     }
-    
-    const students = await getStudents();
-    
-    // Vérifier si l'étudiant existe déjà
-    if (students.some(student => student.name === name)) {
-      return res.render('home', { 
-        currentPage: 'home', 
-        message: 'Un étudiant avec ce nom existe déjà', 
-        messageType: 'error' 
-      });
-    }
-    
-    // Ajouter le nouvel étudiant
-    students.push({ name, birth });
-    await saveStudents(students);
-
-    // Formater les dates pour l'affichage
-    const studentsWithFormattedDates = students.map(student => ({
-        ...student,
-        formattedBirth: formatDate(student.birth)
-      }));
     
     return res.render('users', {
-        currentPage: 'users',
-        students: studentsWithFormattedDates,
-        message: 'Étudiant ajouté avec succès', 
-        messageType: 'success' 
+      currentPage: 'users',
+      students: result.students,
+      message: result.message,
+      messageType: result.status
     });
   } catch (error) {
     console.error('Erreur lors de l\'ajout d\'un étudiant:', error);
@@ -93,6 +81,7 @@ app.post('/add-student', async (req, res) => {
   }
 });
 
+// Route pour afficher le formulaire d'édition d'un étudiant
 app.get('/edit/:name', async (req, res) => {
   try {
     const { name } = req.params;
@@ -118,55 +107,28 @@ app.get('/edit/:name', async (req, res) => {
   }
 });
 
+// Route pour mettre à jour un étudiant
 app.post('/update-student/:originalName', async (req, res) => {
   try {
     const { originalName } = req.params;
     const { name, birth } = req.body;
     
-    if (!name || !birth) {
+    const result = await updateStudent(originalName, name, birth);
+    
+    if (result.status === 'error') {
       return res.render('edit', { 
         currentPage: 'users', 
-        message: 'Tous les champs sont obligatoires', 
+        student: result.student || { name: originalName, birth },
+        message: result.message, 
         messageType: 'error' 
       });
     }
-    
-    const students = await getStudents();
-    const studentIndex = students.findIndex(s => s.name === originalName);
-    
-    if (studentIndex === -1) {
-      return res.render('edit', { 
-        currentPage: 'users', 
-        message: 'Étudiant non trouvé', 
-        messageType: 'error' 
-      });
-    }
-    
-    // Vérifier si le nouveau nom existe déjà
-    if (name !== originalName && students.some(s => s.name === name)) {
-      return res.render('edit', { 
-        currentPage: 'users', 
-        student: { name: originalName, birth },
-        message: 'Un étudiant avec ce nom existe déjà', 
-        messageType: 'error' 
-      });
-    }
-    
-    // Mettre à jour l'étudiant
-    students[studentIndex] = { name, birth };
-    await saveStudents(students);
-
-    // Formater les dates pour l'affichage
-    const studentsWithFormattedDates = students.map(student => ({
-        ...student,
-        formattedBirth: formatDate(student.birth)
-      }));
     
     return res.render('users', {
-        currentPage: 'users', 
-        students: studentsWithFormattedDates,
-        message: 'Étudiant mis à jour avec succès', 
-        messageType: 'success' 
+      currentPage: 'users',
+      students: result.students,
+      message: result.message,
+      messageType: result.status
     });
   } catch (error) {
     console.error('Erreur lors de la mise à jour de l\'étudiant:', error);
@@ -178,25 +140,17 @@ app.post('/update-student/:originalName', async (req, res) => {
   }
 });
 
+// Route pour supprimer un étudiant
 app.post('/delete-student/:name', async (req, res) => {
   try {
     const { name } = req.params;
-    let students = await getStudents();
-    
-    students = students.filter(student => student.name !== name);
-    await saveStudents(students);
-    
-    // Formater les dates pour l'affichage
-    const studentsWithFormattedDates = students.map(student => ({
-      ...student,
-      formattedBirth: formatDate(student.birth)
-    }));
+    const result = await deleteStudent(name);
     
     return res.render('users', {
       currentPage: 'users',
-      students: studentsWithFormattedDates,
-      message: 'Étudiant supprimé avec succès',
-      messageType: 'success'
+      students: result.students,
+      message: result.message,
+      messageType: result.status
     });
   } catch (error) {
     console.error('Erreur lors de la suppression de l\'étudiant:', error);
