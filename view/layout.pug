@@ -1,0 +1,35 @@
+doctype html
+html(lang="fr")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport", content="width=device-width, initial-scale=1.0")
+    title Gestion des étudiants
+    link(rel="stylesheet", href="/css/style.css")
+  body
+    header
+      h1 Gestion des étudiants
+    
+    nav
+      ul
+        li
+          a(href="/" class=currentPage === 'home' ? 'active' : '') Home
+        li
+          a(href="/users" class=currentPage === 'users' ? 'active' : '') Users
+    
+    if message
+      div(class=`toast ${messageType || 'success'}`)#toast= message
+    
+    main
+      block content
+    
+    script.
+      // Afficher et masquer les messages toast
+      document.addEventListener('DOMContentLoaded', function() {
+        const toast = document.getElementById('toast');
+        if (toast && toast.textContent) {
+          toast.style.display = 'block';
+          setTimeout(() => {
+            toast.style.display = 'none';
+          }, 3000);
+        }
+      });

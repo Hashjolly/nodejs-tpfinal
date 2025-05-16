@@ -1,0 +1,19 @@
+extends layout
+
+block content
+  h2 Modifier un étudiant
+  
+  if student
+    form(action=`/update-student/${student.name}` method="POST")
+      div.form-group
+        label(for="name") Nom :
+        input(type="text" id="name" name="name" value=student.name required)
+      
+      div.form-group
+        label(for="birth") Date de naissance :
+        input(type="date" id="birth" name="birth" value=student.birth required)
+      
+      button(type="submit") Mettre à jour
+  else
+    p Étudiant non trouvé.
+    a(href="/users") Retour à la liste

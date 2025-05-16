@@ -1,0 +1,15 @@
+extends layout
+
+block content
+  h2 Ajouter un étudiant
+  
+  form(action="/add-student" method="POST")
+    div.form-group
+      label(for="name") Nom :
+      input(type="text" id="name" name="name" required)
+    
+    div.form-group
+      label(for="birth") Date de naissance :
+      input(type="date" id="birth" name="birth" required)
+    
+    button(type="submit") Ajouter

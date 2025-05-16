@@ -1,0 +1,20 @@
+extends layout
+
+block content
+  h2 Liste des étudiants
+  
+  if students && students.length > 0
+    ul.student-list
+      each student in students
+        li.student-item
+          div.student-info
+            span #{student.name} - #{student.formattedBirth}
+          
+          div.student-actions
+            a(href=`/edit/${student.name}`)
+              button.btn-edit Modifier
+            
+            form(action=`/delete-student/${student.name}` method="POST" style="display: inline;")
+              button.btn-delete(type="submit") X
+  else
+    p Aucun étudiant trouvé.
